@@ -1,0 +1,86 @@
+<?php
+/**
+ * Copyright © MageMe. All rights reserved.
+ * See LICENSE for license terms, or https://mageme.com/license.
+ */
+/**
+ * Hyva Checkout digital-content waiver step (Art. 16(m) Directive 2011/83/EU).
+ * Magewire-bound; consent state lives on the WaiverStep component and is
+ * validated server-side by `evaluateCompletion()` before navigation advances.
+ *
+ * @var \Hyva\MageMeEUWithdrawalCheckout\Magewire\Checkout\WaiverStep $magewire
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+$items = $magewire->items;
+if ($magewire->loadError) {
+    ?>
+    <div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-5 text-[14px] leading-relaxed text-red-800">
+        <?= $escaper->escapeHtml(__('The digital-content consent step is temporarily unavailable. Please refresh the page; if the problem persists, contact support — your order cannot be completed until the required consent can be shown.')) ?>
+    </div>
+    <?php
+    return;
+}
+if ($items === []) {
+    return;
+}
+// Both items share the same consent + acknowledgment text per locale + jurisdiction
+$consentText = (string) ($items[0]['consent_text'] ?? '');
+$ackText = (string) ($items[0]['acknowledgment_text'] ?? '');
+?>
+<div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-5">
+    <div class="flex items-start justify-between gap-3">
+        <h3 class="text-[16px] font-semibold leading-snug text-gray-900">
+            <?= $escaper->escapeHtml(__('Digital Content Delivery — Required Waiver')) ?>
+        </h3>
+        <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-[12px] font-semibold text-amber-800 whitespace-nowrap">
+            <?= $escaper->escapeHtml(__('EU Art. 16(m)')) ?>
+        </span>
+    </div>
+    <p class="mt-1.5 text-[14px] leading-relaxed text-gray-700">
+        <?= $escaper->escapeHtml(__('Your cart contains digital content. To receive it immediately, EU consumer law requires both your express consent to begin performance and your acknowledgment that doing so causes you to lose the right of withdrawal once delivery starts.')) ?>
+    </p>
+
+    <ul class="mt-3 space-y-1 text-[13px] text-gray-700">
+        <?php foreach ($items as $item): ?>
+            <li class="flex items-start gap-2">
+                <span class="mt-0.5 inline-block h-2 w-2 flex-shrink-0 rounded-full bg-amber-400" aria-hidden="true"></span>
+                <span class="font-mono text-[12px] text-gray-500"><?= $escaper->escapeHtml((string) $item['sku']) ?></span>
+                <span class="flex-1"><?= $escaper->escapeHtml((string) $item['name']) ?></span>
+                <span class="text-gray-500">×<?= $escaper->escapeHtml((string) (int) $item['qty']) ?></span>
+            </li>
+        <?php endforeach ?>
+    </ul>
+
+    <div class="mt-4 space-y-3">
+        <label class="flex cursor-pointer items-start gap-3 rounded border border-amber-300 bg-white p-3 hover:border-amber-400">
+            <input type="checkbox"
+                   class="mt-0.5 h-5 w-5 flex-none rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                   wire:model="consentExpress"
+                   required/>
+            <span class="text-[14px] leading-relaxed text-gray-800">
+                <strong class="font-semibold"><?= $escaper->escapeHtml(__('Express consent (Art. 16(m)(i))')) ?></strong>
+                <span class="mt-1 block text-[13px] text-gray-700">
+                    <?= $escaper->escapeHtml($consentText !== '' ? $consentText : __('I expressly request that performance of the digital content begin immediately, before the end of the 14-day withdrawal period.')) ?>
+                </span>
+            </span>
+        </label>
+
+        <label class="flex cursor-pointer items-start gap-3 rounded border border-amber-300 bg-white p-3 hover:border-amber-400">
+            <input type="checkbox"
+                   class="mt-0.5 h-5 w-5 flex-none rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                   wire:model="lossAck"
+                   required/>
+            <span class="text-[14px] leading-relaxed text-gray-800">
+                <strong class="font-semibold"><?= $escaper->escapeHtml(__('Acknowledgment of loss of withdrawal (Art. 16(m)(ii))')) ?></strong>
+                <span class="mt-1 block text-[13px] text-gray-700">
+                    <?= $escaper->escapeHtml($ackText !== '' ? $ackText : __('I acknowledge that, as a result, I will lose my right of withdrawal once performance has begun.')) ?>
+                </span>
+            </span>
+        </label>
+    </div>
+
+    <p class="mt-3 text-[12px] text-gray-500">
+        <?= $escaper->escapeHtml(__('Both confirmations are required to proceed. Your consent is recorded with a tamper-evident hash of the legal text shown above.')) ?>
+    </p>
+</div>

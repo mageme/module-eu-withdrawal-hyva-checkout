@@ -1,0 +1,41 @@
+{
+  "name": "mageme/module-eu-withdrawal-hyva-checkout",
+  "description": "Hyva Checkout compatibility for mageme/module-eu-withdrawal. Re-implements the pre-contract Annex I block and the digital-content waiver step (Art. 16(m)) for Hyva Checkout's Magewire-based runtime. Companion to mageme/module-eu-withdrawal-hyva. NOT legal advice — see README disclaimer; merchant is responsible for compliance verification.",
+  "version": "1.0.0",
+  "type": "magento2-module",
+  "license": "proprietary",
+  "keywords": [
+    "magento2",
+    "hyva",
+    "hyva-themes",
+    "hyva-checkout",
+    "magewire",
+    "consumer-protection",
+    "eu-compliance",
+    "withdrawal",
+    "art-11a",
+    "directive-2011-83",
+    "mageme",
+    "theme-compatibility"
+  ],
+  "authors": [
+    {
+      "name": "MageMe",
+      "homepage": "https://mageme.com",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": "~8.1.0||~8.2.0||~8.3.0||~8.4.0||~8.5.0",
+    "mageme/module-eu-withdrawal": "^1.0",
+    "hyva-themes/magento2-hyva-checkout": "^1.3"
+  },
+  "autoload": {
+    "files": [
+      "registration.php"
+    ],
+    "psr-4": {
+      "Hyva\\MageMeEUWithdrawalCheckout\\": ""
+    }
+  }
+}

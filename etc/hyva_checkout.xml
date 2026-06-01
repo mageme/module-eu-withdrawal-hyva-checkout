@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Hyva_Checkout:etc/hyva_checkout.xsd">
+    <checkout name="default">
+        <step name="waiver"
+              label="Digital Content Waiver"
+              route="waiver"
+              after="shipping"
+              before="payment">
+            <condition name="has_digital_content"
+                       if="Hyva\MageMeEUWithdrawalCheckout\Model\CustomCondition\HasDigitalContent"/>
+        </step>
+    </checkout>
+    <checkout name="onepage">
+        <step name="onepage">
+            <update handle="hyva_checkout_default_waiver"
+                    if="Hyva\MageMeEUWithdrawalCheckout\Model\CustomCondition\HasDigitalContent"/>
+        </step>
+    </checkout>
+</config>

@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="hyva.checkout.components">
+            <block name="checkout.eu-withdrawal-precontract"
+                   class="MageMe\EUWithdrawal\Block\Checkout\PrecontractInfo"
+                   template="Hyva_MageMeEUWithdrawalCheckout::checkout/precontract.phtml"/>
+            <block name="checkout.eu-withdrawal-waiver"
+                   template="Hyva_MageMeEUWithdrawalCheckout::checkout/waiver.phtml">
+                <arguments>
+                    <argument name="magewire" xsi:type="object">
+                        Hyva\MageMeEUWithdrawalCheckout\Magewire\Checkout\WaiverStep
+                    </argument>
+                </arguments>
+            </block>
+        </referenceBlock>
+    </body>
+</page>
