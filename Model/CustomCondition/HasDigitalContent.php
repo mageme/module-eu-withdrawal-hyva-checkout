@@ -9,6 +9,7 @@ namespace Hyva\MageMeEUWithdrawalCheckout\Model\CustomCondition;
 
 use Hyva\Checkout\Model\CustomConditionInterface;
 use MageMe\EUWithdrawal\Block\Checkout\WaiverStep;
+use MageMe\EUWithdrawal\Model\Geo\CountryScope;
 use MageMe\EUWithdrawal\Service\DigitalContentDetector;
 use Magento\Checkout\Model\Session as CheckoutSession;
 use Magento\Framework\App\Config\ScopeConfigInterface;
@@ -28,11 +29,13 @@ class HasDigitalContent implements CustomConditionInterface
      * @param CheckoutSession $checkoutSession
      * @param DigitalContentDetector $detector
      * @param ScopeConfigInterface $scopeConfig
+     * @param CountryScope $countryScope
      */
     public function __construct(
         private readonly CheckoutSession $checkoutSession,
         private readonly DigitalContentDetector $detector,
         private readonly ScopeConfigInterface $scopeConfig,
+        private readonly CountryScope $countryScope,
     ) {
     }
 
@@ -53,6 +56,9 @@ class HasDigitalContent implements CustomConditionInterface
         try {
             $quote = $this->checkoutSession->getQuote();
         } catch (\Throwable) {
+            return false;
+        }
+        if (!$this->countryScope->quoteInScope($quote)) {
             return false;
         }
         $digital = $this->detector->filterDigitalItems($quote->getAllVisibleItems());

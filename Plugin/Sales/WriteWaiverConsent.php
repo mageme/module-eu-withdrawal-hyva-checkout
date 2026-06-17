@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Hyva\MageMeEUWithdrawalCheckout\Plugin\Sales;
 
+use MageMe\EUWithdrawal\Model\Geo\CountryScope;
 use MageMe\EUWithdrawal\Model\Waiver\WaiverEventReader;
 use MageMe\EUWithdrawal\Model\Waiver\WaiverEventWriter;
 use MageMe\EUWithdrawal\Model\Waiver\WaiverTextHasher;
@@ -47,6 +48,7 @@ class WriteWaiverConsent
      * @param LoggerInterface $logger
      * @param WaiverEventReader $reader
      * @param ScopeConfigInterface $scopeConfig
+     * @param CountryScope $countryScope
      */
     public function __construct(
         private readonly DigitalContentDetector $detector,
@@ -59,6 +61,7 @@ class WriteWaiverConsent
         private readonly LoggerInterface $logger,
         private readonly WaiverEventReader $reader,
         private readonly ScopeConfigInterface $scopeConfig,
+        private readonly CountryScope $countryScope,
     ) {
     }
 
@@ -94,6 +97,9 @@ class WriteWaiverConsent
         $quote = $this->cartRepo->get($cartId);
         $storeId = (int) $quote->getStoreId();
         if (!$this->scopeConfig->isSetFlag(self::XML_DIGITAL_ENABLED, ScopeInterface::SCOPE_STORE, $storeId)) {
+            return;
+        }
+        if (!$this->countryScope->quoteInScope($quote)) {
             return;
         }
         $digital = $this->detector->filterDigitalItems($quote->getAllVisibleItems());
