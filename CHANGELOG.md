@@ -1,6 +1,11 @@
+## 1.0.2
+
+- Fix: The digital-content waiver step is now reliably hidden for orders outside the merchant's configured withdrawal scope (country and customer group).
+- Fix: A failure while recording the checkout waiver consent no longer surfaces as an error; it fails safely and can be retried.
+
 ## 1.0.1
 
-* Other: The digital-content waiver step is skipped for orders outside the merchant's configured Country Scope.
+* Other: The digital-content waiver step is skipped for orders outside the merchant's configured withdrawal scope (country and customer group).
 
 ## 1.0.0
 

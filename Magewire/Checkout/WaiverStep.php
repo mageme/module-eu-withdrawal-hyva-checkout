@@ -157,7 +157,18 @@ class WaiverStep extends Component implements EvaluationInterface
                 ->withMessage((string) __('Please confirm both consent boxes to proceed with digital content delivery.'))
                 ->asBlocking();
         }
-        $this->recordAffirmation();
+        try {
+            $this->recordAffirmation();
+        } catch (\Throwable $e) {
+            $this->euLogger->warning(
+                'Hyva Checkout WaiverStep affirmation write failed: ' . $e->getMessage(),
+                ['exception' => $e],
+            );
+            return $resultFactory->createErrorMessageEvent()
+                ->withCustomEvent('eu-withdrawal-waiver:consent:error')
+                ->withMessage((string) __('We could not record your consent just now. Please try again.'))
+                ->asBlocking();
+        }
         return $resultFactory->createSuccess([], 'eu-withdrawal-waiver:consent:success');
     }
 
