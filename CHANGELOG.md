@@ -1,3 +1,7 @@
+## 1.0.3
+
+- Fix: The checkout pre-contractual information now shows your configured withdrawal period instead of a fixed 14 days.
+
 ## 1.0.2
 
 - Fix: The digital-content waiver step is now reliably hidden for orders outside the merchant's configured withdrawal scope (country and customer group).

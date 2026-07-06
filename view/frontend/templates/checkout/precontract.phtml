@@ -39,7 +39,8 @@ $publishedDate = $block->getFormattedPublishedAt();
     </div>
     <p class="mt-1.5 text-[14px] leading-relaxed text-gray-700">
         <?= $escaper->escapeHtml(__(
-            'Before placing your order, please review the conditions, time limit, and procedures for exercising your 14-day right of withdrawal. This information forms part of your contract.',
+            'Before placing your order, please review the conditions, time limit, and procedures for exercising your %1-day right of withdrawal. This information forms part of your contract.',
+            $snapshot->getPeriodDays()
         )) ?>
     </p>
 

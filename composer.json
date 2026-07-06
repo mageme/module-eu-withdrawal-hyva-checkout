@@ -1,7 +1,7 @@
 {
   "name": "mageme/module-eu-withdrawal-hyva-checkout",
   "description": "Hyva Checkout compatibility for mageme/module-eu-withdrawal. Re-implements the pre-contract Annex I block and the digital-content waiver step (Art. 16(m)) for Hyva Checkout's Magewire-based runtime. Companion to mageme/module-eu-withdrawal-hyva. NOT legal advice — see README disclaimer; merchant is responsible for compliance verification.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "magento2-module",
   "license": "proprietary",
   "keywords": [
