@@ -1,3 +1,9 @@
+## 1.0.4
+
+- Fix: The digital-content waiver step no longer shows in Hyvä Checkout while the module is disabled.
+- Fix: Waiver consent is no longer recorded while the module or the checkout waiver step is disabled.
+- Fix: Checkout can no longer get stuck on the digital-content waiver step after the module or the waiver step is switched off mid-order.
+
 ## 1.0.3
 
 - Fix: The checkout pre-contractual information now shows your configured withdrawal period instead of a fixed 14 days.

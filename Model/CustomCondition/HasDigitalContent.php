@@ -9,6 +9,7 @@ namespace Hyva\MageMeEUWithdrawalCheckout\Model\CustomCondition;
 
 use Hyva\Checkout\Model\CustomConditionInterface;
 use MageMe\EUWithdrawal\Block\Checkout\WaiverStep;
+use MageMe\EUWithdrawal\Model\ModuleConfig;
 use MageMe\EUWithdrawal\Model\Scope\WithdrawalScope;
 use MageMe\EUWithdrawal\Service\DigitalContentDetector;
 use Magento\Checkout\Model\Session as CheckoutSession;
@@ -30,12 +31,14 @@ class HasDigitalContent implements CustomConditionInterface
      * @param DigitalContentDetector $detector
      * @param ScopeConfigInterface $scopeConfig
      * @param WithdrawalScope $withdrawalScope
+     * @param ModuleConfig $moduleConfig
      */
     public function __construct(
         private readonly CheckoutSession $checkoutSession,
         private readonly DigitalContentDetector $detector,
         private readonly ScopeConfigInterface $scopeConfig,
         private readonly WithdrawalScope $withdrawalScope,
+        private readonly ModuleConfig $moduleConfig,
     ) {
     }
 
@@ -46,16 +49,21 @@ class HasDigitalContent implements CustomConditionInterface
      */
     public function validate(): bool
     {
-        $waiverEnabled = (bool) $this->scopeConfig->getValue(
-            WaiverStep::XML_ENABLED,
-            ScopeInterface::SCOPE_STORE,
-        );
-        if (!$waiverEnabled) {
-            return false;
-        }
         try {
             $quote = $this->checkoutSession->getQuote();
         } catch (\Throwable) {
+            return false;
+        }
+        $storeId = (int) $quote->getStoreId();
+        if (!$this->moduleConfig->isEnabled($storeId)) {
+            return false;
+        }
+        $waiverEnabled = (bool) $this->scopeConfig->getValue(
+            WaiverStep::XML_ENABLED,
+            ScopeInterface::SCOPE_STORE,
+            $storeId,
+        );
+        if (!$waiverEnabled) {
             return false;
         }
         if (!$this->withdrawalScope->quoteInScope($quote)) {

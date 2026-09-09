@@ -10,13 +10,17 @@ namespace Hyva\MageMeEUWithdrawalCheckout\Magewire\Checkout;
 use Hyva\Checkout\Model\Magewire\Component\EvaluationInterface;
 use Hyva\Checkout\Model\Magewire\Component\EvaluationResultFactory;
 use Hyva\Checkout\Model\Magewire\Component\EvaluationResultInterface;
+use MageMe\EUWithdrawal\Block\Checkout\WaiverStep as WaiverStepBlock;
+use MageMe\EUWithdrawal\Model\ModuleConfig;
 use MageMe\EUWithdrawal\Model\Waiver\WaiverEventReader;
 use MageMe\EUWithdrawal\Model\Waiver\WaiverEventWriter;
 use MageMe\EUWithdrawal\Model\Waiver\WaiverTextHasher;
 use MageMe\EUWithdrawal\Model\Waiver\WaiverTextResolver;
 use MageMe\EUWithdrawal\Service\DigitalContentDetector;
 use Magento\Checkout\Model\Session as CheckoutSession;
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\Request\Http as HttpRequest;
+use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Magewirephp\Magewire\Component;
 use Psr\Log\LoggerInterface;
@@ -65,6 +69,8 @@ class WaiverStep extends Component implements EvaluationInterface
     protected LoggerInterface $euLogger;
     protected WaiverEventWriter $euWriter;
     protected HttpRequest $euRequest;
+    protected ModuleConfig $euModuleConfig;
+    protected ScopeConfigInterface $euScopeConfig;
 
     /**
      * Constructor.
@@ -77,6 +83,8 @@ class WaiverStep extends Component implements EvaluationInterface
      * @param LoggerInterface $logger
      * @param WaiverEventWriter $writer
      * @param HttpRequest $request
+     * @param ModuleConfig $moduleConfig
+     * @param ScopeConfigInterface $scopeConfig
      */
     public function __construct(
         CheckoutSession $checkoutSession,
@@ -86,7 +94,9 @@ class WaiverStep extends Component implements EvaluationInterface
         StoreManagerInterface $storeManager,
         LoggerInterface $logger,
         WaiverEventWriter $writer,
-        HttpRequest $request
+        HttpRequest $request,
+        ModuleConfig $moduleConfig,
+        ScopeConfigInterface $scopeConfig
     ) {
         $this->euCheckoutSession = $checkoutSession;
         $this->euDetector = $detector;
@@ -96,6 +106,8 @@ class WaiverStep extends Component implements EvaluationInterface
         $this->euLogger = $logger;
         $this->euWriter = $writer;
         $this->euRequest = $request;
+        $this->euModuleConfig = $moduleConfig;
+        $this->euScopeConfig = $scopeConfig;
     }
 
     /**
@@ -145,6 +157,9 @@ class WaiverStep extends Component implements EvaluationInterface
      */
     public function evaluateCompletion(EvaluationResultFactory $resultFactory): EvaluationResultInterface
     {
+        if (!$this->isWaiverEnabled()) {
+            return $resultFactory->createSuccess([], 'eu-withdrawal-waiver:consent:success');
+        }
         if ($this->loadError) {
             return $resultFactory->createErrorMessageEvent()
                 ->withCustomEvent('eu-withdrawal-waiver:consent:error')
@@ -170,6 +185,21 @@ class WaiverStep extends Component implements EvaluationInterface
                 ->asBlocking();
         }
         return $resultFactory->createSuccess([], 'eu-withdrawal-waiver:consent:success');
+    }
+
+    /**
+     * Same gate as the base OrderPlacementGuard, at the quote store scope:
+     * both the module master switch and the checkout waiver switch must be on
+     * before a consent affirmation is written.
+     *
+     * @return bool
+     */
+    protected function isWaiverEnabled(): bool
+    {
+        $storeId = (int) $this->euCheckoutSession->getQuote()->getStoreId();
+
+        return $this->euModuleConfig->isEnabled($storeId)
+            && $this->euScopeConfig->isSetFlag(WaiverStepBlock::XML_ENABLED, ScopeInterface::SCOPE_STORE, $storeId);
     }
 
     /**
