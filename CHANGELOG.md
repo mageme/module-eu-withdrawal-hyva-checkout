@@ -1,3 +1,7 @@
+## 1.0.5
+
+- Fix: The digital-content consent step on Hyvä Checkout keeps its styling — its styles were being left out when the theme's Tailwind bundle was built.
+
 ## 1.0.4
 
 - Fix: The digital-content waiver step no longer shows in Hyvä Checkout while the module is disabled.
