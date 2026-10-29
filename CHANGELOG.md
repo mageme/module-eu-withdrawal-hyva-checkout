@@ -1,3 +1,11 @@
+## 1.1.0
+
++ New: Works with Hyvä Checkout 3 as a native Magewire 3 component, with or without Hyvä's Magewire 1 backward-compatibility module. Hyvä Checkout 1.3 stays supported.
++ New: Ships its own translations into 22 EU languages, so its texts no longer depend on the base module's dictionary.
+- Fix: Digital-content consent is recorded only for the digital items in the customer's cart and only for the consent text they were shown, never from checkout data the browser can change.
+- Fix: Changing the billing country after giving consent on the one-page checkout no longer ends in a "please reload checkout" error at Place Order.
+* Change: If the address, the cart or the consent text changes after the customer ticked the consent boxes, both boxes are cleared and the current text is shown, so consent is given again for what is actually being bought. Changing the quantity alone keeps the consent.
+
 ## 1.0.5
 
 - Fix: The digital-content consent step on Hyvä Checkout keeps its styling — its styles were being left out when the theme's Tailwind bundle was built.

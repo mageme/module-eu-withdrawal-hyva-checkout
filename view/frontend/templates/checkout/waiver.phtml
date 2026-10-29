@@ -16,18 +16,14 @@ $items = $magewire->items;
 // Both items share the same consent + acknowledgment text per locale + jurisdiction
 $consentText = (string) ($items[0]['consent_text'] ?? '');
 $ackText = (string) ($items[0]['acknowledgment_text'] ?? '');
-if ($magewire->loadError || ($items !== [] && ($consentText === '' || $ackText === ''))) {
-    ?>
+$unavailable = $magewire->loadError || ($items !== [] && ($consentText === '' || $ackText === ''));
+?>
+<div x-data="euWithdrawalWaiverStep" x-on:eu-withdrawal-waiver:context-changed.window="syncContext">
+<?php if ($unavailable): ?>
     <div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-5 text-[14px] leading-relaxed text-red-800">
         <?= $escaper->escapeHtml(__('The digital-content consent step is temporarily unavailable. Please refresh the page; if the problem persists, contact support — your order cannot be completed until the required consent can be shown.')) ?>
     </div>
-    <?php
-    return;
-}
-if ($items === []) {
-    return;
-}
-?>
+<?php elseif ($items !== []): ?>
 <div class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-5">
     <div class="flex items-start justify-between gap-3">
         <h3 class="text-[16px] font-semibold leading-snug text-gray-900">
@@ -56,7 +52,7 @@ if ($items === []) {
         <label class="flex cursor-pointer items-start gap-3 rounded border border-amber-300 bg-white p-3 hover:border-amber-400">
             <input type="checkbox"
                    class="mt-0.5 h-5 w-5 flex-none rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                   wire:model="consentExpress"
+                   wire:model.live="consentExpress"
                    required/>
             <span class="text-[14px] leading-relaxed text-gray-800">
                 <strong class="font-semibold"><?= $escaper->escapeHtml(__('Express consent (Art. 16(m)(i))')) ?></strong>
@@ -69,7 +65,7 @@ if ($items === []) {
         <label class="flex cursor-pointer items-start gap-3 rounded border border-amber-300 bg-white p-3 hover:border-amber-400">
             <input type="checkbox"
                    class="mt-0.5 h-5 w-5 flex-none rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                   wire:model="lossAck"
+                   wire:model.live="lossAck"
                    required/>
             <span class="text-[14px] leading-relaxed text-gray-800">
                 <strong class="font-semibold"><?= $escaper->escapeHtml(__('Acknowledgment of loss of withdrawal (Art. 16(m)(ii))')) ?></strong>
@@ -83,4 +79,6 @@ if ($items === []) {
     <p class="mt-3 text-[12px] text-gray-500">
         <?= $escaper->escapeHtml(__('Both confirmations are required to proceed. Your consent is recorded with a tamper-evident hash of the legal text shown above.')) ?>
     </p>
+</div>
+<?php endif ?>
 </div>

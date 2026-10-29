@@ -4,7 +4,7 @@
 
 [![Latest Version](https://img.shields.io/packagist/v/mageme/module-eu-withdrawal-hyva-checkout.svg?style=flat-square)](https://packagist.org/packages/mageme/module-eu-withdrawal-hyva-checkout)
 [![Downloads](https://img.shields.io/packagist/dt/mageme/module-eu-withdrawal-hyva-checkout.svg?style=flat-square)](https://packagist.org/packages/mageme/module-eu-withdrawal-hyva-checkout)
-[![Hyva Checkout](https://img.shields.io/badge/Hyva%20Checkout-1.3%2B-21CFD5.svg?style=flat-square)](https://www.hyva.io)
+[![Hyva Checkout](https://img.shields.io/badge/Hyva%20Checkout-1.3%20%7C%203.x-21CFD5.svg?style=flat-square)](https://www.hyva.io)
 [![PHP](https://img.shields.io/badge/PHP-8.1%20%7C%208.2%20%7C%208.3%20%7C%208.4%20%7C%208.5-777BB4.svg?style=flat-square)](https://php.net)
 [![License](https://img.shields.io/badge/license-MageMe%20EULA-blue.svg?style=flat-square)](https://mageme.com/license/)
 
@@ -26,7 +26,7 @@ For the storefront withdrawal pages, customer account and order view, install th
 ## Requirements
 
 - **EU Withdrawal** base module (pulled automatically)
-- `hyva-themes/magento2-hyva-checkout` **≥ 1.3**
+- `hyva-themes/magento2-hyva-checkout` **1.3 or 3.x** (Hyvä Checkout 3 needs PHP 8.2+)
 - Magento **2.4.4–2.4.9**, **PHP 8.1–8.5**
 
 ## Install

@@ -23,6 +23,7 @@ use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Magewirephp\Magewire\Component;
+use Magewirephp\Magewire\Features\SupportMagewireBackwardsCompatibility\HandleBackwardsCompatibility;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -42,7 +43,13 @@ use Psr\Log\LoggerInterface;
  * (`$request`, `$response`, `$resolver`, `$loader`, `$redirect`, etc.).
  * Magewire's hydrators iterate every public property; we use protected to
  * keep injected services out of the wire-state payload.
+ *
+ * Public properties are client-writable, so `$items` is display state only:
+ * the affirmation is always built from the current quote on the server.
+ *
+ * Runs as a native Magewire 3 component on Hyva Checkout 3, outside the v1bc layer.
  */
+#[HandleBackwardsCompatibility(enabled: false)]
 class WaiverStep extends Component implements EvaluationInterface
 {
     /** @var bool Magewire wire:model state — both must be true to allow navigation. */
@@ -60,6 +67,17 @@ class WaiverStep extends Component implements EvaluationInterface
 
     /** @var bool True when context hydration failed — renders a recoverable notice instead of a blank step. */
     public bool $loadError = false;
+
+    /** @var array<string, string> An address change can switch the jurisdiction and with it the legal text. */
+    protected $listeners = [
+        'shipping_address_saved' => 'syncContext',
+        'shipping_address_activated' => 'syncContext',
+        'billing_address_saved' => 'syncContext',
+        'billing_address_activated' => 'syncContext',
+    ];
+
+    /** @var bool Set once this request replaced the displayed context; a tick in the same request stays cleared. */
+    protected bool $contextReplaced = false;
 
     protected CheckoutSession $euCheckoutSession;
     protected DigitalContentDetector $euDetector;
@@ -166,6 +184,9 @@ class WaiverStep extends Component implements EvaluationInterface
                 ->withMessage((string) __('The digital-content consent step could not load. Please refresh and try again, or contact support.'))
                 ->asBlocking();
         }
+        if ($this->items === [] && !$this->hasDigitalItems()) {
+            return $resultFactory->createSuccess([], 'eu-withdrawal-waiver:consent:success');
+        }
         if (!$this->consentExpress || !$this->lossAck) {
             return $resultFactory->createErrorMessageEvent()
                 ->withCustomEvent('eu-withdrawal-waiver:consent:error')
@@ -173,7 +194,21 @@ class WaiverStep extends Component implements EvaluationInterface
                 ->asBlocking();
         }
         try {
-            $this->recordAffirmation();
+            $items = $this->buildContext()['items'];
+            if (!$this->hasConsentTexts($items)) {
+                return $resultFactory->createErrorMessageEvent()
+                    ->withCustomEvent('eu-withdrawal-waiver:consent:error')
+                    ->withMessage((string) __('The digital-content consent step could not load. Please refresh and try again, or contact support.'))
+                    ->asBlocking();
+            }
+            if (!$this->matchesDisplayedItems($items)) {
+                // waiver.phtml answers this event with syncContext(), which shows the current text.
+                return $resultFactory->createErrorMessageEvent()
+                    ->withCustomEvent('eu-withdrawal-waiver:context-changed')
+                    ->withMessage((string) __('The products or the consent text have changed. Please review the text and confirm both boxes again.'))
+                    ->asBlocking();
+            }
+            $this->recordAffirmation($items);
         } catch (\Throwable $e) {
             $this->euLogger->warning(
                 'Hyva Checkout WaiverStep affirmation write failed: ' . $e->getMessage(),
@@ -185,6 +220,129 @@ class WaiverStep extends Component implements EvaluationInterface
                 ->asBlocking();
         }
         return $resultFactory->createSuccess([], 'eu-withdrawal-waiver:consent:success');
+    }
+
+    /**
+     * Magewire hook: the express consent box changed. Magewire 1 assigns the
+     * returned value to the property.
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    public function updatedConsentExpress($value): bool
+    {
+        return !$this->contextReplaced && $this->syncDisplayedContext() && (bool) $value;
+    }
+
+    /**
+     * Magewire hook: the loss acknowledgment box changed. Magewire 1 assigns
+     * the returned value to the property.
+     *
+     * @param mixed $value
+     * @return bool
+     */
+    public function updatedLossAck($value): bool
+    {
+        return !$this->contextReplaced && $this->syncDisplayedContext() && (bool) $value;
+    }
+
+    /**
+     * Magewire listener for the checkout address events.
+     *
+     * @return void
+     */
+    public function syncContext(): void
+    {
+        $this->syncDisplayedContext();
+    }
+
+    /**
+     * When the cart or the legal text no longer matches what the customer is
+     * looking at, show the current items and text with both boxes cleared.
+     *
+     * @return bool False when the displayed context was replaced
+     */
+    protected function syncDisplayedContext(): bool
+    {
+        try {
+            $context = $this->buildContext();
+        } catch (\Throwable $e) {
+            $this->loadError = true;
+            $this->euLogger->warning(
+                'Hyva Checkout WaiverStep update failed: ' . $e->getMessage(),
+                ['exception' => $e],
+            );
+            return true;
+        }
+        $this->loadError = false;
+        if ($this->matchesDisplayedItems($context['items'])) {
+            return true;
+        }
+        $this->consentExpress = false;
+        $this->lossAck = false;
+        $this->items = $context['items'];
+        $this->locale = $context['locale'];
+        $this->jurisdiction = $context['jurisdiction'];
+        $this->contextReplaced = true;
+        return false;
+    }
+
+    /**
+     * Whether the server-built items are the ones the customer is looking at.
+     *
+     * @param array<int, array<string, mixed>> $items
+     * @return bool
+     */
+    protected function matchesDisplayedItems(array $items): bool
+    {
+        return $this->fingerprint($items) === $this->fingerprint($this->items);
+    }
+
+    /**
+     * Item identity and the hash of the consent text, locale and jurisdiction.
+     *
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, array<int, mixed>>
+     */
+    protected function fingerprint(array $items): array
+    {
+        return array_map(static fn ($item): array => [
+            (int) ($item['quote_item_id'] ?? 0),
+            (string) ($item['waiver_text_hash'] ?? ''),
+            (string) ($item['locale'] ?? ''),
+            (string) ($item['jurisdiction'] ?? ''),
+        ], array_values($items));
+    }
+
+    /**
+     * Whether the current quote holds digital items; a failed lookup counts as
+     * yes, so the consent path below blocks and logs it.
+     *
+     * @return bool
+     */
+    protected function hasDigitalItems(): bool
+    {
+        try {
+            return $this->buildContext()['items'] !== [];
+        } catch (\Throwable $e) {
+            return true;
+        }
+    }
+
+    /**
+     * Whether every item carries both legal texts.
+     *
+     * @param array<int, array<string, mixed>> $items
+     * @return bool
+     */
+    protected function hasConsentTexts(array $items): bool
+    {
+        foreach ($items as $item) {
+            if ((string) ($item['consent_text'] ?? '') === '' || (string) ($item['acknowledgment_text'] ?? '') === '') {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -204,15 +362,16 @@ class WaiverStep extends Component implements EvaluationInterface
 
     /**
      * Persist the genuine UI consent affirmation (EVT_AFFIRM) for each digital
-     * item, bound to the text the customer was shown.
+     * item of the current quote, bound to the server-resolved text.
      *
+     * @param array<int, array<string, mixed>> $items
      * @return void
      */
-    protected function recordAffirmation(): void
+    protected function recordAffirmation(array $items): void
     {
         $ip = (string) $this->euRequest->getClientIp();
         $ua = (string) $this->euRequest->getServerValue('HTTP_USER_AGENT', '');
-        foreach ($this->items as $item) {
+        foreach ($items as $item) {
             $this->euWriter->upsert([
                 'order_id' => 0,
                 'quote_item_id' => (int) $item['quote_item_id'],
@@ -241,6 +400,20 @@ class WaiverStep extends Component implements EvaluationInterface
         $this->consentExpress = false;
         $this->lossAck = false;
 
+        $context = $this->buildContext();
+        $this->items = $context['items'];
+        $this->locale = $context['locale'];
+        $this->jurisdiction = $context['jurisdiction'];
+    }
+
+    /**
+     * Digital items of the current quote with the consent texts and hash for
+     * the store locale and billing jurisdiction.
+     *
+     * @return array{items: array<int, array<string, mixed>>, locale: string, jurisdiction: ?string}
+     */
+    protected function buildContext(): array
+    {
         $quote = $this->euCheckoutSession->getQuote();
         $digital = $this->euDetector->filterDigitalItems($quote->getAllVisibleItems());
         $locale = (string) $this->euStoreManager->getStore()->getConfig('general/locale/code');
@@ -267,8 +440,7 @@ class WaiverStep extends Component implements EvaluationInterface
                 'jurisdiction' => $jurisdictionKey,
             ];
         }
-        $this->items = $items;
-        $this->locale = $locale;
-        $this->jurisdiction = $jurisdiction ?: null;
+
+        return ['items' => $items, 'locale' => $locale, 'jurisdiction' => $jurisdiction ?: null];
     }
 }

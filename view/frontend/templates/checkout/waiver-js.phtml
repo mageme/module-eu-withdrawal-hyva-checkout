@@ -1,0 +1,25 @@
+<?php
+/**
+ * Copyright © MageMe. All rights reserved.
+ * See LICENSE for license terms, or https://mageme.com/license.
+ */
+/**
+ * Alpine component of the digital-content waiver step: when the navigator finds
+ * that the cart or the consent text changed, reload the step from the server.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Hyva\Theme\ViewModel\HyvaCsp $hyvaCsp
+ */
+?>
+<script>
+    function euWithdrawalWaiverStep() {
+        return {
+            syncContext() {
+                this.$wire.syncContext()
+            }
+        }
+    }
+
+    window.addEventListener('alpine:init', () => Alpine.data('euWithdrawalWaiverStep', euWithdrawalWaiverStep), {once: true})
+</script>
+<?php isset($hyvaCsp) && $hyvaCsp->registerInlineScript() ?>
